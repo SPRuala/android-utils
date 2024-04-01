@@ -1,6 +1,7 @@
 package com.bc.testip;
 
 import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -26,6 +27,8 @@ import android.widget.TextView;
 public class MainActivity extends ActionBarActivity {
 	private Button ipButton;
 	private TextView textView;
+	private TextView textView2;
+	private TextView textView3;
 	private OtherRun otherRun;
 
     @Override
@@ -34,6 +37,8 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
         
         textView=(TextView) findViewById(R.id.textView1);
+        textView2=(TextView) findViewById(R.id.textView2);
+        textView3=(TextView) findViewById(R.id.textView3);
         
         otherRun=new OtherRun();
         Thread thread=new Thread(otherRun,"其他线程");
@@ -45,7 +50,8 @@ public class MainActivity extends ActionBarActivity {
 			e.printStackTrace();
 		}
 			textView.setText(otherRun.getIpAddress());
-        
+			textView2.setText(otherRun.getIpAddressLocalIpv6());
+			textView3.setText(otherRun.getIpAddressIpv6());
         
         ipButton=(Button) findViewById(R.id.ipButton);
         ipButton.setOnClickListener(new OnClickListener() {
@@ -63,14 +69,14 @@ public class MainActivity extends ActionBarActivity {
 					e.printStackTrace();
 				}
 					textView.setText(otherRun.getIpAddress());
-				
+					textView2.setText(otherRun.getIpAddressLocalIpv6());
+					textView3.setText(otherRun.getIpAddressIpv6());
 			}
 		});
     }
 
     private String getIp() throws Exception {
 		// TODO Auto-generated method stub
-    	
     	try {
             // 获取所有网络接口
             Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
@@ -98,26 +104,80 @@ public class MainActivity extends ActionBarActivity {
         } catch (SocketException e) {
             e.printStackTrace();
         }
-        return "无法找到ip";
+        return "No IPv4 Address found";
     }
     
+    private String getLocalIpForIpv6() throws Exception {
+		// TODO Auto-generated method stub
+    	// TODO Auto-generated method stub
+    	InetAddress inetAddress=InetAddress.getLocalHost();
+    	System.out.println(inetAddress);
+    	Inet4Address inet4Address=(Inet4Address) Inet4Address.getLocalHost();
+    	String inetAddressStr=inetAddress.toString();
+    	System.out.println(inet4Address);
+    	
+    	List<NetworkInterface> networkInterfaces=Collections.list(NetworkInterface.getNetworkInterfaces());
+    	for (NetworkInterface networkInterface : networkInterfaces) {
+			Collection<InetAddress> inetAddressList=Collections.list(networkInterface.getInetAddresses());
+			for (InetAddress inetAddress2 : inetAddressList) {
+				System.out.println(inetAddress2.getHostAddress());
+				return inetAddress2.getHostAddress();
+			}
+		}
+    	return "No Local IPv6 Address found";
+	}
     
+   private String getIpv6(){
+       try {
+    	   Enumeration<NetworkInterface>  networkInterfaces = NetworkInterface.getNetworkInterfaces();
+           while (networkInterfaces.hasMoreElements()) {
+               NetworkInterface networkInterface = networkInterfaces.nextElement();
+               if (networkInterface.isLoopback() || networkInterface.isVirtual()) {
+                   continue;
+               }
+               Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
+               while (inetAddresses.hasMoreElements()) {
+                   InetAddress inetAddress = inetAddresses.nextElement();
+                   if (inetAddress instanceof Inet6Address) {
+                       Inet6Address inet6Address = (Inet6Address) inetAddress;
+                       // 排除本地链路地址
+                       if (!inet6Address.isLinkLocalAddress()) {
+                           return inetAddress.getHostAddress();
+                       }
+                   }
+               }
+           }
+       } catch (SocketException e) {
+           e.printStackTrace();
+       }
+       return "No IPv6 Address found";
+	   
+   }
     
     
    class OtherRun implements Runnable{
 	   
 	  private String ipAddress;
+	  private String ipAddressLocalIpv6;
+	  private String ipAddressIpv6;
 	  
 	  public String getIpAddress() {
 		return ipAddress;
+	}
+	  public String getIpAddressLocalIpv6() {
+		return ipAddressLocalIpv6;
+	}
+	  public String getIpAddressIpv6() {
+		return ipAddressIpv6;
 	}
 
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
-    	InetAddress inetAddress;
 		try {
 			ipAddress=getIp();
+			ipAddressLocalIpv6=getLocalIpForIpv6();
+			ipAddressIpv6=getIpv6();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
